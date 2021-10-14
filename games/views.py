@@ -1,16 +1,29 @@
 from django.shortcuts import render
+from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from esp.moc_esp import ProjectESP
 from games.models import Game
+from games.serializers import EmailValidSerializer
 
 ESP = ProjectESP()
 
 
 @api_view(['POST'])
 def verification_mail(request, *args, **kwargs):
-    email = request.data.get('email')
+    """
+    Получения email из запроса
+    Проверка валидности
+    Добавление email в ESP если он отсутствует в списке
+    Создание записи об игре
+    Вывод количество игр для email.
+    """
+    serializer = EmailValidSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    email = serializer.data.get('email')
     email_in_esp = ESP.check_email(email=email)
 
     games_count = Game.objects.filter(email=email).count()
